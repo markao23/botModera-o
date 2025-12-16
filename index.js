@@ -7,9 +7,16 @@ const fs = require("fs");
 // 2. Configurar o Cliente
 const client = new Client({
   intents: [
+    // 1. Permite o bot ver que o servidor existe (CORRIGE SEU ERRO ATUAL)
     GatewayIntentBits.Guilds,
+
+    // 2. Permite o bot ler as mensagens
     GatewayIntentBits.GuildMessages,
+
+    // 3. Permite o bot ler o CONTEÚDO (!comando)
     GatewayIntentBits.MessageContent,
+
+    // 4. Permite o bot ver quem entra (PARA O BOAS-VINDAS FUNCIONAR)
     GatewayIntentBits.GuildMembers, // ADICIONEI ISSO: Necessário para dar cargos (roles)
   ],
 });
@@ -50,6 +57,50 @@ client.once(Events.ClientReady, (c) => {
   console.log(`🤖 Bot online! Logado como: ${c.user.tag}`);
 });
 
+// No topo do index.js certifique-se de importar EmbedBuilder
+// const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+
+const CANAL_BOAS_VINDAS_ID = "1388136541532065822"; 
+
+client.on('guildMemberAdd', async (member) => {
+    // Busca o canal
+    const canal = member.guild.channels.cache.get(CANAL_BOAS_VINDAS_ID);
+    if (!canal) return;
+
+    // Recria o mesmo design bonito (Consistência)
+    const embed = new EmbedBuilder()
+        .setColor('#2F3136')
+        .setTitle(`🚀 Bem-vindo(a) à ${member.guild.name}!`)
+        .setDescription(`Olá **${member.user}**, é uma honra ter você aqui!\nAgora fazemos parte da mesma equipe.`)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
+        .addFields(
+            { 
+                name: '📜 Primeiros Passos', 
+                value: `> Leia as regras para evitar punições.\n> Respeite todos os membros da staff.`, 
+                inline: false 
+            },
+            { 
+                name: '💬 Interaja', 
+                value: `> Apresente-se no chat geral.\n> Entre nas calls para conversar!`, 
+                inline: false 
+            },
+            { 
+                name: '📊 Estatísticas', 
+                value: `Você é o membro número **${member.guild.memberCount}**!`, 
+                inline: false 
+            }
+        )
+        .setImage('https://i.imgur.com/mWyvD8B.png') // Mesmo link do banner
+        .setFooter({ 
+            text: `ID: ${member.id}`, 
+            iconURL: member.guild.iconURL() 
+        })
+        .setTimestamp();
+
+    // Envia no canal
+    await canal.send({ content: `Olá ${member}, olhe aqui!`, embeds: [embed] });
+});
+
 // 4. Evento: Mensagem
 client.on(Events.MessageCreate, (message) => {
   if (message.author.bot || !message.content.startsWith("!")) return;
@@ -62,7 +113,7 @@ client.on(Events.MessageCreate, (message) => {
   const command = client.commands.get(commandName);
 
   try {
-    command.execute(message, args);
+    command.execute(client, message, args);
   } catch (error) {
     console.error(error);
     message.reply("Houve um erro ao tentar executar esse comando!");
